@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>綠色生活地圖</title>
     
     <!-- Tailwind CSS -->
@@ -19,14 +19,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        #map { height: 100%; width: 100%; z-index: 0; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; }
         
-        /* 隱藏 Scrollbar */
+        #map { 
+            height: 100vh; 
+            height: 100dvh; 
+            width: 100%; 
+            z-index: 0; 
+        }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* --- Cluster 樣式 --- */
+        /* --- Cluster & Marker --- */
         .unified-cluster {
             background: #6b7280;
             color: white;
@@ -43,7 +48,6 @@
         }
         .unified-cluster:active { transform: scale(0.95); }
 
-        /* --- Marker 樣式 --- */
         .custom-marker-pin {
             display: flex;
             align-items: center;
@@ -54,7 +58,6 @@
             transition: transform 0.2s;
         }
 
-        /* --- 載入動畫 --- */
         .loader {
             border: 3px solid #f3f3f3;
             border-radius: 50%;
@@ -65,7 +68,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- PopUp 美化 --- */
         .leaflet-popup-content-wrapper {
             border-radius: 16px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
@@ -82,10 +84,9 @@
         
         /* --- 介面樣式 --- */
         
-        /* 預留空間容器 */
         .info-slot-container {
             height: 50px; 
-            margin-top: 8px; 
+            margin-top: 6px; 
             display: flex;
             align-items: center;
             justify-content: flex-start; 
@@ -95,27 +96,25 @@
             padding: 0;
         }
 
-        /* 1. 上方主分類膠囊按鈕 */
+        /* 1. 主分類膠囊按鈕 */
         .category-btn {
             transition: all 0.2s;
-            display: inline-flex;
-            flex-direction: row;
+            display: inline-flex; 
             align-items: center;
             justify-content: center;
-            padding: 8px 18px;
+            padding: 8px 15px; 
             border-radius: 9999px; 
-            font-size: 0.95rem;
+            font-size: 0.9rem; 
             font-weight: 700;
             border: 1px solid #e5e7eb;
             white-space: nowrap;
             background: white;
             color: #4b5563;
-            margin-right: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0; 
         }
         .category-btn:active { transform: scale(0.95); }
         
-        /* 主按鈕 Active: 純黑 (統一) */
         .category-btn.active {
             background: #000000 !important; 
             color: white !important;
@@ -123,18 +122,19 @@
             box-shadow: none !important;
         }
 
-        .category-btn i { font-size: 1.1rem; margin-right: 6px; margin-bottom: 0; }
+        .category-btn i { font-size: 1.05rem; margin-right: 5px; margin-bottom: 0; }
 
-        /* 2. 下方細項按鈕 - 跟上方一模一樣，只是微縮 */
+        /* 2. 下方細項按鈕 (修改：稍微縮小一點點點) */
         .sub-btn {
             transition: all 0.2s;
             display: inline-flex;
             flex-direction: row;
             align-items: center;
             justify-content: center;
-            /* 微縮尺寸 */
-            padding: 6px 14px; 
+            /* 修改：內距微縮 (原 8px 14px -> 7px 12px) */
+            padding: 7px 12px; 
             border-radius: 9999px; 
+            /* 修改：字體微縮 (原 0.9rem -> 0.85rem) */
             font-size: 0.85rem; 
             font-weight: 700;
             border: 1px solid #e5e7eb;
@@ -147,7 +147,6 @@
         }
         .sub-btn:active { transform: scale(0.95); }
 
-        /* 注意：細項的 Active 顏色現在由 JS 動態控制，移除原本 CSS 中的 !important 黑色 */
         .sub-btn.active {
             color: white !important;
             border-color: transparent !important;
@@ -161,6 +160,7 @@
 
         #btn-search {
             white-space: nowrap;
+            transform: translateY(8px);
         }
 
     </style>
@@ -176,7 +176,7 @@
     </div>
 
     <!-- 底部控制面板 -->
-    <div class="absolute bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.1)] p-5 pb-8 transition-transform duration-300">
+    <div class="absolute bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.1)] p-5 pb-10 transition-transform duration-300">
         
         <!-- 標題 -->
         <div class="flex justify-between items-center mb-4">
@@ -187,7 +187,7 @@
         </div>
 
         <!-- 1. 主分類膠囊按鈕 -->
-        <div class="flex justify-start gap-0 overflow-x-auto no-scrollbar pb-1">
+        <div class="flex justify-start items-center gap-2 w-full overflow-x-auto no-scrollbar pb-1">
             <button onclick="showSubCategories('transport', this)" class="category-btn">
                 <i class="fa-solid fa-car text-blue-500"></i>
                 <span>交通</span>
@@ -210,9 +210,8 @@
         <div id="info-slot" class="info-slot-container">
             
             <!-- 左側：細項選單 -->
-            <div id="sub-menu-container" class="flex-1 flex justify-start items-center overflow-x-auto no-scrollbar h-full">
-                <!-- 預設提示 -->
-                <p id="default-hint" class="text-gray-400 text-sm pl-1">請先選擇上方類別</p>
+            <div id="sub-menu-container" class="flex-1 flex justify-start items-center overflow-x-auto no-scrollbar h-full pl-1">
+                <p id="default-hint" class="hidden"></p> 
             </div>
 
             <!-- 右側：搜尋按鈕 -->
@@ -229,23 +228,20 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
-        // --- 變數 ---
         let map, userMarker, markerClusterGroup;
         let fetchedData = [];
         let userPos = null; 
         let currentSelectedItem = null; 
         let statusTimeout = null;
 
-        // UI 參考
         const statusPill = document.getElementById('status-pill');
         const statusText = document.getElementById('status-text');
         const loader = document.getElementById('loader-spinner');
         const btnSearch = document.getElementById('btn-search');
 
-        // --- 資料設定 (使用 Hex 顏色確保顯示正確) ---
         const categoryConfig = {
             transport: {
-                activeHex: '#3b82f6', // 交通藍
+                activeHex: '#3b82f6',
                 items: [
                     { id: 'bus', name: '公車站', query: 'nwr["highway"="bus_stop"]', type: 'bus' },
                     { id: 'train', name: '火車', query: 'nwr["railway"="station"];nwr["station"="subway"]', type: 'train' },
@@ -253,7 +249,7 @@
                 ]
             },
             service: {
-                activeHex: '#06b6d4', // 服務青
+                activeHex: '#06b6d4',
                 items: [
                     { id: 'water', name: '飲水機', query: 'nwr["amenity"="drinking_water"]', type: 'water' },
                     { id: 'toilet', name: '廁所', query: 'nwr["amenity"="toilets"]', type: 'toilet' },
@@ -261,7 +257,7 @@
                 ]
             },
             rest: {
-                activeHex: '#10b981', // 休憩綠
+                activeHex: '#10b981',
                 items: [
                     { id: 'park', name: '公園', query: 'nwr["leisure"="park"];nwr["leisure"="garden"]', type: 'park' },
                     { id: 'library', name: '圖書館', query: 'nwr["amenity"="library"]', type: 'library' },
@@ -269,7 +265,7 @@
                 ]
             },
             shop: {
-                activeHex: '#f43f5e', // 消費紅
+                activeHex: '#f43f5e',
                 items: [
                     { id: 'food', name: '蔬食餐廳', query: 'nwr["diet:vegetarian"="yes"];nwr["diet:vegan"="yes"]', type: 'food' },
                     { id: 'secondhand', name: '二手', query: 'nwr["shop"="second_hand"];nwr["shop"="charity"]', type: 'secondhand' },
@@ -278,7 +274,6 @@
             }
         };
 
-        // --- 初始化 ---
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView([23.6, 121.0], 7);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -302,7 +297,6 @@
             map.addLayer(markerClusterGroup);
         }
 
-        // --- 定位功能 ---
         function locateUserAndSearch() {
             showStatus('定位中...', true); 
             
@@ -337,41 +331,29 @@
             userMarker = L.marker(userPos, {icon: userIcon}).addTo(map);
         }
 
-        // --- 顯示細項 (關鍵邏輯優化) ---
         function showSubCategories(groupKey, btnElement) {
-            // 1. 重置搜尋按鈕
             resetSearchButton();
 
-            // 2. 更新主按鈕狀態 (變黑)
             document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
 
-            // 3. 處理容器 - 加入判斷防止錯誤
             const hint = document.getElementById('default-hint');
             const container = document.getElementById('sub-menu-container');
             
-            // 檢查 hint 是否存在才進行操作
-            if (hint) {
-                hint.classList.add('hidden');
-            }
+            if (hint) hint.classList.add('hidden');
             
-            // 強制清空容器內容，解決刷新問題
             container.innerHTML = ''; 
 
-            // 4. 獲取該類別配置
             const config = categoryConfig[groupKey]; 
             const activeColor = config.activeHex;
 
-            // 5. 生成子按鈕
             config.items.forEach((item, index) => {
                 const subBtn = document.createElement('button');
-                subBtn.className = 'sub-btn'; // 套用預設樣式
+                subBtn.className = 'sub-btn'; 
                 subBtn.innerHTML = item.name;
                 subBtn.style.animationDelay = `${index * 50}ms`;
                 
-                // 點擊事件：套用父類別顏色
                 subBtn.onclick = () => {
-                    // 重置同容器內所有按鈕 (變回白底)
                     container.querySelectorAll('.sub-btn').forEach(sb => {
                         sb.classList.remove('active');
                         sb.style.backgroundColor = 'white';
@@ -379,7 +361,6 @@
                         sb.style.borderColor = '#e5e7eb';
                     });
                     
-                    // 激活當前按鈕 (變父類別顏色)
                     subBtn.classList.add('active');
                     subBtn.style.backgroundColor = activeColor;
                     subBtn.style.borderColor = activeColor;
@@ -400,7 +381,6 @@
             btnSearch.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> 開始搜尋`;
         }
 
-        // --- 點擊搜尋按鈕 ---
         function handleSearchClick() {
             if (!currentSelectedItem) return;
             
@@ -414,7 +394,6 @@
             }
         }
 
-        // --- 執行搜尋邏輯 ---
         async function executeSearch() {
             const item = currentSelectedItem;
             const btn = btnSearch;
@@ -422,7 +401,6 @@
             markerClusterGroup.clearLayers();
 
             try {
-                // 第一階段
                 showStatus(`搜尋中...`, true); 
                 let data = await fetchOverpass(item.query, 1000);
 
@@ -431,7 +409,6 @@
                     fitMapToBounds(data.elements);
                     showStatus(`找到 ${data.elements.length} 個地點`, false);
                 } else {
-                    // 第二階段
                     data = await fetchOverpass(item.query, 5000);
                     
                     if (data.elements.length > 0) {
@@ -482,7 +459,6 @@
             map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
         }
 
-        // --- 資料處理與渲染 ---
         function processData(elements, forcedType) {
             fetchedData = [];
             
@@ -545,7 +521,6 @@
             });
         }
 
-        // --- 狀態顯示優化：自動消失 ---
         function showStatus(msg, isLoading) {
             if (statusTimeout) clearTimeout(statusTimeout);
 
