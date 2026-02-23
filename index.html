@@ -179,11 +179,33 @@
     <div class="absolute bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.1)] p-5 pb-10 transition-transform duration-300">
         
         <!-- 標題 -->
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-4 relative">
             <h1 class="text-xl font-bold text-gray-800 flex items-center gap-1">
                 <span class="text-green-600"><i class="fa-solid fa-leaf"></i></span>
                 綠色地圖
             </h1>
+            
+            <!-- 更多選項按鈕 (三個點) -->
+            <div>
+                <button id="btn-more-options" onclick="toggleMoreMenu()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full transition-colors focus:outline-none">
+                    <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                </button>
+                
+                <!-- 下拉選單 (預設隱藏) -->
+                <div id="more-menu" class="hidden absolute right-0 top-10 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-[1001] origin-top-right transition-all">
+                    <button onclick="manualLocation()" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 font-medium">
+                        <i class="fa-solid fa-location-crosshairs w-4 text-center text-gray-400"></i> 手動定位
+                    </button>
+                    <!-- 新增：自訂搜尋範圍 -->
+                    <button onclick="openSearchRangeModal()" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 font-medium">
+                        <i class="fa-solid fa-satellite-dish w-4 text-center text-gray-400"></i> 搜尋範圍
+                    </button>
+                    <!-- 新增：衛星地圖切換 (對付想看真實空照圖的使用者) -->
+                    <button id="btn-satellite" onclick="toggleSatelliteMap()" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 font-medium">
+                        <i class="fa-solid fa-satellite w-4 text-center text-gray-400"></i> 切換衛星地圖
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- 1. 主分類膠囊按鈕 -->
@@ -198,7 +220,7 @@
             </button>
             <button onclick="showSubCategories('rest', this)" class="category-btn">
                 <i class="fa-solid fa-tree text-emerald-500"></i>
-                <span>休憩</span>
+                <span>休息</span>
             </button>
             <button onclick="showSubCategories('shop', this)" class="category-btn">
                 <i class="fa-solid fa-store text-rose-500"></i>
@@ -222,17 +244,95 @@
         </div>
     </div>
 
+    <!-- 自訂輸入對話框 (手動定位用 - 已簡化) -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm shadow-2xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">手動輸入位置</h3>
+            <input type="text" id="manual-location-input" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 mb-5 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm" placeholder="輸入位置...">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">取消</button>
+                <button onclick="submitManualLocation()" class="px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">定位</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜尋範圍設定對話框 -->
+    <div id="search-range-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm shadow-2xl">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">自訂搜尋範圍</h3>
+            <p class="text-xs text-gray-500 mb-4">設定每次搜尋的半徑距離。</p>
+            <select id="search-range-select" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 mb-5 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm bg-white">
+                <option value="default">預設</option>
+                <option value="1000">1 公里</option>
+                <option value="3000">3 公里</option>
+                <option value="5000">5 公里</option>
+                <option value="10000">10 公里</option>
+            </select>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeSearchRangeModal()" class="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">取消</button>
+                <button onclick="submitSearchRange()" class="px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 首次歡迎對話框 (修改：移除動機、只留結論、靠左對齊、防單字斷行) -->
+    <div id="welcome-modal" class="hidden fixed inset-0 z-[3000] flex items-center justify-center bg-black/50 backdrop-blur-md transition-opacity">
+        <div class="bg-white rounded-[2rem] p-8 w-11/12 max-w-md shadow-2xl transform transition-all scale-100">
+            
+            <div class="text-left mb-8">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-green-50 text-green-600 rounded-full text-2xl shadow-inner shrink-0">
+                        <i class="fa-solid fa-earth-asia"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">綠色生活地圖</h2>
+                </div>
+                <p class="text-sm text-gray-600 text-left">為您過濾干擾資訊，精準呈現環境友善的選擇。</p>
+            </div>
+            
+            <div class="space-y-6 mb-8 px-1">
+                <div class="flex items-start gap-4 text-left">
+                    <i class="fa-solid fa-bicycle text-blue-500 text-2xl mt-0.5 w-8 text-center shrink-0"></i>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">減碳出行</h4>
+                        <p class="text-xs text-gray-500 mt-1 leading-relaxed break-keep">一鍵尋找附近大眾運輸與單車，落實無碳交通。</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 text-left">
+                    <i class="fa-solid fa-faucet-drip text-cyan-500 text-xl mt-1 w-8 text-center shrink-0"></i>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">無塑生活</h4>
+                        <p class="text-xs text-gray-500 mt-1 leading-relaxed break-keep">快速定位飲水機，方便攜帶環保杯減少塑膠垃圾。</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 text-left">
+                    <i class="fa-solid fa-recycle text-emerald-500 text-xl mt-1 w-8 text-center shrink-0"></i>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">循環經濟</h4>
+                        <p class="text-xs text-gray-500 mt-1 leading-relaxed break-keep">發掘二手商店、回收站與蔬食餐廳，支持綠色消費。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="closeWelcomeModal()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl transition-colors text-sm shadow-lg shadow-green-200/50">
+                開始探索
+            </button>
+        </div>
+    </div>
+
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
-        let map, userMarker, markerClusterGroup;
+        let map, userMarker, markerClusterGroup, mapLayer;
         let fetchedData = [];
         let userPos = null; 
         let currentSelectedItem = null; 
         let statusTimeout = null;
+        
+        let isSatelliteMap = false; // 記錄是否為衛星地圖模式
+        let currentSearchRadius = 'default'; // 記錄當前的搜尋範圍
 
         const statusPill = document.getElementById('status-pill');
         const statusText = document.getElementById('status-text');
@@ -276,7 +376,7 @@
 
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView([23.6, 121.0], 7);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            mapLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OSM', maxZoom: 19
             }).addTo(map);
 
@@ -402,23 +502,40 @@
 
             try {
                 showStatus(`搜尋中...`, true); 
-                let data = await fetchOverpass(item.query, 1000);
+                
+                if (currentSearchRadius === 'default') {
+                    // 預設邏輯：先找1公里，不到3個再找3公里
+                    let data = await fetchOverpass(item.query, 1000);
 
-                if (data.elements.length > 0) {
-                    processData(data.elements, item.type);
-                    fitMapToBounds(data.elements);
-                    showStatus(`找到 ${data.elements.length} 個地點`, false);
+                    if (data.elements.length >= 3) {
+                        processData(data.elements, item.type);
+                        fitMapToBounds(data.elements);
+                        showStatus(`找到 ${data.elements.length} 個地點`, false);
+                    } else {
+                        data = await fetchOverpass(item.query, 3000);
+                        
+                        if (data.elements.length > 0) {
+                            processData(data.elements, item.type);
+                            fitMapToBounds(data.elements);
+                            showStatus(`找到 ${data.elements.length} 個地點`, false);
+                        } else {
+                            showStatus(`附近沒有找到相關地點`, false);
+                        }
+                    }
                 } else {
-                    data = await fetchOverpass(item.query, 5000);
+                    // 自訂範圍邏輯
+                    const radius = parseInt(currentSearchRadius);
+                    let data = await fetchOverpass(item.query, radius);
                     
                     if (data.elements.length > 0) {
                         processData(data.elements, item.type);
                         fitMapToBounds(data.elements);
                         showStatus(`找到 ${data.elements.length} 個地點`, false);
                     } else {
-                        showStatus(`附近沒有找到相關地點`, false);
+                        showStatus(`指定範圍內沒有找到相關地點`, false);
                     }
                 }
+
             } catch (e) {
                 console.error(e);
                 showStatus('連線錯誤', false);
@@ -478,6 +595,9 @@
                 if (tags['addr:district']) address += tags['addr:district'];
                 if (tags['addr:street']) address += tags['addr:street'];
                 if (!address && tags.location) address = tags.location;
+
+                // 儲存到陣列中供「匯出功能」使用
+                fetchedData.push({ name: displayName, category: catName, address: address, lat: lat, lon: lng });
 
                 const details = {
                     opening_hours: tags.opening_hours,
@@ -572,7 +692,127 @@
             return { color: colorClass, icon: iconClass };
         }
 
+        // --- 進階功能 (三個點按鈕) 邏輯 ---
+        function toggleMoreMenu() {
+            const menu = document.getElementById('more-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // 點擊選單外部自動關閉
+        document.addEventListener('click', (e) => {
+            const btn = document.getElementById('btn-more-options');
+            const menu = document.getElementById('more-menu');
+            if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // 1. 手動定位 (開啟 Modal)
+        function manualLocation() {
+            toggleMoreMenu();
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            const input = document.getElementById('manual-location-input');
+            input.value = '';
+            // 延遲一下讓對話框顯示後再聚焦輸入框
+            setTimeout(() => input.focus(), 100); 
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        async function submitManualLocation() {
+            const address = document.getElementById('manual-location-input').value.trim();
+            if (!address) return;
+            
+            closeModal();
+            showStatus('搜尋位置中...', true);
+            try {
+                // 使用 OpenStreetMap 的 Nominatim 服務進行免費的地址編碼
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    userPos = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                    map.setView(userPos, 14);
+                    updateUserMarker();
+                    showStatus('已成功切換定位', false);
+                } else {
+                    showStatus('找不到該位置，請嘗試其他關鍵字', false);
+                }
+            } catch (e) {
+                showStatus('定位發生錯誤', false);
+            }
+        }
+
+        // --- 搜尋範圍設定功能 ---
+        function openSearchRangeModal() {
+            toggleMoreMenu();
+            document.getElementById('search-range-modal').classList.remove('hidden');
+            document.getElementById('search-range-select').value = currentSearchRadius;
+        }
+
+        function closeSearchRangeModal() {
+            document.getElementById('search-range-modal').classList.add('hidden');
+        }
+
+        function submitSearchRange() {
+            currentSearchRadius = document.getElementById('search-range-select').value;
+            closeSearchRangeModal();
+            const label = currentSearchRadius === 'default' ? '預設' : (parseInt(currentSearchRadius) / 1000) + ' 公里';
+            showStatus(`搜尋範圍已設定為：${label}`, false);
+        }
+
+        // 2. 切換衛星地圖/街道圖 (隱藏地圖功能)
+        function toggleSatelliteMap() {
+            toggleMoreMenu();
+            if (mapLayer) {
+                map.removeLayer(mapLayer);
+            }
+            
+            isSatelliteMap = !isSatelliteMap;
+            
+            // 街道圖 (CartoDB) 與 衛星圖 (Esri World Imagery) 的網址
+            const normalUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+            const satelliteUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+            
+            const url = isSatelliteMap ? satelliteUrl : normalUrl;
+            
+            mapLayer = L.tileLayer(url, {
+                attribution: isSatelliteMap ? '&copy; Esri' : '&copy; OSM', 
+                maxZoom: 19
+            }).addTo(map);
+
+            // 動態修改選單按鈕的文字與圖示，讓使用者知道可以切換回來
+            const btnSatellite = document.getElementById('btn-satellite');
+            if (isSatelliteMap) {
+                btnSatellite.innerHTML = `<i class="fa-solid fa-map w-4 text-center text-gray-400"></i> 切換街道地圖`;
+                showStatus('已切換為真實衛星圖', false);
+            } else {
+                btnSatellite.innerHTML = `<i class="fa-solid fa-satellite w-4 text-center text-gray-400"></i> 切換衛星地圖`;
+                showStatus('已切換回街道圖', false);
+            }
+        }
+
+        // --- 首次登入檢查邏輯 ---
+        function checkFirstVisit() {
+            const hasVisited = localStorage.getItem('greenMapVisited');
+            if (!hasVisited) {
+                // 第一次來，顯示歡迎視窗
+                document.getElementById('welcome-modal').classList.remove('hidden');
+            }
+        }
+
+        function closeWelcomeModal() {
+            document.getElementById('welcome-modal').classList.add('hidden');
+            // 寫入 localStorage，貼上「已造訪」貼紙
+            localStorage.setItem('greenMapVisited', 'true');
+        }
+
         initMap();
+        
+        // 畫面載入完畢後檢查是否為第一次來
+        checkFirstVisit();
     </script>
 </body>
 </html>
